@@ -17,7 +17,7 @@ from reportlab.lib.units import inch
 from reportlab.lib import colors
 from PIL import Image
 import io
-from datetime import datetime
+from datetime import datetime,date
 from dotenv import load_dotenv
 import platform
 from pydantic import BaseModel, Field
@@ -35,6 +35,7 @@ class PatientDetails(BaseModel):
     age: int = Field(..., example=22, ge=0, le=120)
     gender: str = Field(..., example="Male")  # You could use Enum for strict values
     contact_no: int = Field(...)
+    visit_date: date = Field(...)
     symptoms: str = Field(..., example="cold,fever")
 
 
@@ -535,7 +536,19 @@ async def analyze_medical_image(file: UploadFile = File(...)):
         # Step 3: Generate PDF report
         logger.info("Generating PDF report...")
         pdf_path = create_pdf_report(temp_image_path, initial_analysis, agents_report, file.filename)
-        
+        try:
+            #insert into db
+            ai_diagnosed_condition=initial_analysis.get('diagnosed_condition', 'Not specified')
+            ai_detailed_analysis=initial_analysis.get('detailed_analysis', '')
+            ai_treatment_diagnosiswise=agents_report
+            doctor_analysis="doctor's analysis will come hereeeee"
+            client_id=1
+            doctor_id=1
+            visit_id=1
+            db_obj.treatment_diagnosis_db(client_id,doctor_id,visit_id,ai_diagnosed_condition,ai_detailed_analysis,ai_treatment_diagnosiswise,doctor_analysis,image_data)
+            print("Inserted Successfullyy in diagnosis_treatment_info table")
+        except Exception as e:
+            print("an exception occured during database insertion: ",e)
         # Prepare response
         result = {
             "status": "success",
@@ -590,10 +603,18 @@ def get_client_details(patient: PatientDetails):
     """Get all client details from UI(api)"""
     print("patient detailssss")
     try:
-        print("patient detailssss")
-        print(patient.first_name)
-        print(patient.last_name)
-        print(patient)
+        client_id=2
+        visit_id=1
+        doctor_id=1
+        first_name=patient.first_name
+        last_name=patient.last_name
+        age=patient.age
+        gender=patient.gender
+        contact_no=patient.contact_no
+        visit_date=patient.visit_date
+        symptoms=patient.symptoms
+        db_obj.client_db(client_id,visit_id,doctor_id,first_name,last_name,age,gender,contact_no,visit_date,symptoms)
+        print("inserted in client table successfully")
         return patient
     except Exception as e:
         logger.error(f"Analysis failed: {str(e)}", exc_info=True)
