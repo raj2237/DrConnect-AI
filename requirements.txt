@@ -1,0 +1,42 @@
+# Web Framework
+fastapi
+uvicorn[standard]
+
+# AI and Machine Learning
+google-generativeai
+crewai
+crewai-tools
+langchain-community
+groq
+
+# File Handling and Async
+aiofiles
+python-multipart
+
+# PDF Generation
+reportlab
+
+# Image Processing
+Pillow
+
+# Environment Variables
+python-dotenv
+
+# HTTP Requests
+aiohttp
+
+# Data Processing
+pandas
+numpy
+
+# Logging and Utilities
+pydantic
+typing-extensions
+
+# Optional: For better JSON handling
+orjson
+
+# Optional: For enhanced async support
+asyncio
+# Optional: For better error handling and monitoring
+sentry-sdk[fastapi]
