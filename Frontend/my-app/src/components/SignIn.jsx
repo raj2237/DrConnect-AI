@@ -7,14 +7,50 @@ function SignIn() {
   const [emailAddress, setEmailAddress] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSubmit = (event) => {
+  // const handleSubmit = (event) => {
+  //   event.preventDefault();
+  //   if (mode === 'login') {
+  //     alert(`Logged in as ${emailAddress}`);
+  //   } else {
+  //     alert(`Account created for ${fullName}`);
+  //   }
+  // };
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    if (mode === 'login') {
-      alert(`Logged in as ${emailAddress}`);
-    } else {
-      alert(`Account created for ${fullName}`);
+  
+    let payload = {};
+    let endpoint = "";
+  
+    if (mode === "login") {
+      payload = { email: emailAddress, password };
+      endpoint = "/login";
+    } 
+     else if (mode === "signup") {
+      payload = { name: fullName, email: emailAddress, password };
+      endpoint = "/signup";
+    }
+  
+    try {
+      const response = await fetch(`http://localhost:8000${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+  
+      const data = await response.json();
+  
+      if (response.ok) {
+        alert(data.message || "Success");
+      } else {
+        alert(data.detail || "Something went wrong");
+      }
+    } catch (err) {
+      console.error("Error:", err);
+      alert("Network error");
     }
   };
+  
+  
 
   const toggleMode = () => {
     setMode((prev) => (prev === 'login' ? 'signup' : 'login'));
