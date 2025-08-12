@@ -6,11 +6,60 @@ from dotenv import load_dotenv
 load_dotenv()
 os.environ['SERPER_API_KEY']=os.getenv('SERPER_API_KEY')
 from crewai_tools import SerperDevTool
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl
+from typing import List
+from pydantic import Field
 
-class User(BaseModel):
-    name: str
-    age: int
+class SingleTreatment(BaseModel):
+    diagnosis_name: str
+    treatment_name: str
+    dosage: str
+    reference_links: List[HttpUrl]
+
+class Diagnosis_1(BaseModel):
+    diagnosis_name: str
+class Diagnosis_main(BaseModel):
+    diagnosis_name: List[Diagnosis_1] = Field(..., min_length=3, max_length=3)
+
+diagnosis_data = Diagnosis_main(
+    diagnosis_name=[
+        Diagnosis_1(diagnosis_name="..."),
+        Diagnosis_1(diagnosis_name="..."),
+        Diagnosis_1(diagnosis_name="...")
+    ]
+)
+
+# 2. Convert to JSON string
+diagnosis_json_str = diagnosis_data.model_dump_json()
+
+class Treatment(BaseModel):
+    treatments: List[SingleTreatment] = Field(..., min_items=3, max_items=3)
+
+treatment_data = Treatment(
+    treatments=[
+        SingleTreatment(
+            diagnosis_name="...",
+            treatment_name="...",
+            dosage="...",
+            reference_links=["https://example.com/salbutamol"]
+        ),
+        SingleTreatment(
+            diagnosis_name="...",
+            treatment_name="...",
+            dosage="...",
+            reference_links=["https://example.com/salbutamol"]
+        ),
+        SingleTreatment(
+            diagnosis_name="...",
+            treatment_name="...",
+            dosage="...",
+            reference_links=["https://example.com/salbutamol"]
+        )
+    ]
+)
+
+# Convert to JSON string (CrewAI expects string for expected_output)
+treatment_json_str = treatment_data.model_dump_json()
 
 tool=SerperDevTool()
 os.environ['GEMINI_API_KEY'] = os.getenv("GOOGLE_API_KEY")
@@ -76,10 +125,11 @@ def main(report_text):
         ),
         verbose=True,
         memory=True,
-        llm=LLM(model="gemini/gemini-2.5-flash",
+        llm=LLM(model="gemini/gemini-1.5-flash",
                             temperature=0.5),
         tools=[tool],
-        allow_delegation=False
+        allow_delegation=False,
+        output_pydantic=Treatment
     )
 
     # Agent 2: Prescription & Treatment Advisor
@@ -91,26 +141,29 @@ def main(report_text):
         ),
         verbose=True,
         memory=True,
-        llm=LLM(model="gemini/gemini-2.5-flash",
+        llm=LLM(model="gemini/gemini-1.5-flash",
                             temperature=0.5),
         tools=[tool],
         allow_delegation=False,
+         output_pydantic=Treatment
     )
 
     # Task 1: Diagnosis
     diagnosis_task = Task(
         description="Analyze this medical report (of any type), identify the report category, and provide the top 5 most likely diagnoses with reasoning. Use web search.",
-        expected_output="List of 5 possible diagnoses with supporting explanation for each in detail.",
+        # expected_output="List of 5 possible diagnoses with supporting explanation for each in detail.",
+        expected_output=diagnosis_json_str,
         agent=diagnosis_agent,
-        input=report_text
+        input=str(report_text)
     )
 
     # Task 2: Treatment Recommendation
     treatment_task = Task(
         description="Based on the diagnoses, recommend medications or therapies with dosage. Use web search to support choices.",
-        expected_output="List of medicines/treatments per diagnosis with usage instructions , name of medicines/tubes and dosage.Also provide reference links with each treatment plan.",
+        # expected_output="List of medicines/treatments per diagnosis with usage instructions , name of medicines/tubes and dosage.Also provide reference links with each treatment plan.",
+        expected_output=treatment_json_str,
         agent=treatment_agent,
-        input=diagnosis_task.output
+        input=str(diagnosis_task.output)
     )
 
     # Crew Runner
@@ -122,6 +175,14 @@ def main(report_text):
 
 
     result = crew.kickoff(inputs={'report_text': report_text})
-
-    print(result)
+    result=str(result)
+    result=result.replace("```json","")
+    result=result.replace("```","")
+    print("result: ",result)
+    print("--------")
+    # print(result.tasks[0].output)
+    # print("---------")
     return result
+
+if __name__=='__main__':
+    main("The radiograph shows a right hand in a posterior-anterior (PA) projection.  There is a significant abnormality present in the distal phalanx of the thumb.  Specifically, there is evidence of a comminuted fracture of the distal phalanx.  The fracture is characterized by multiple fracture fragments, suggesting a high-energy impact. The articular surface of the distal phalanx appears involved, indicating an intra-articular fracture.  The remaining bones of the hand appear normal, with no other fractures, dislocations, or significant degenerative changes observed.  Soft tissue swelling is not overtly apparent, but this may be limited by the projection used.")

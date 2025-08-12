@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Ignore Python cache files
 __pycache__/
 *.py[cod]
@@ -35,3 +36,10 @@ pytest_cache/
 
 # Ignore compiled C files
 *.so
+=======
+node_modules/
+__pycache__/
+*.log
+.env
+myenv/
+>>>>>>> 61a86bce371277a33083375ca85e18040c4ef294
