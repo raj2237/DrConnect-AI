@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse, FileResponse
 import google.generativeai as genai
 from crewai import Agent, Task, Crew, LLM
 # from agents_main import main
-from temp import main
+# from temp import main
 import aiofiles
 import os
 import re
@@ -23,8 +23,10 @@ import platform
 from pydantic import BaseModel, Field
 from typing import Optional
 from db import DataBase
-
+import logging 
 db_obj=DataBase()
+
+logger = logging()
 
 class PatientDetails(BaseModel):
     client_id: int = Field(...)
@@ -244,69 +246,69 @@ def run_medical_agents(report_text: str) -> str:
     
     try:
         # Check if search tool is available
-        # agent_tools = [search_tool] if search_tool else []
-        # load_dotenv()
-        # os.environ['SERPER_API_KEY']=os.getenv('SERPER_API_KEY')
-        # agent_tools=SerperDevTool()
+        agent_tools = [search_tool] if search_tool else []
+        load_dotenv()
+        os.environ['SERPER_API_KEY']=os.getenv('SERPER_API_KEY')
+        agent_tools=SerperDevTool()
         
         
-        # diagnosis_agent = Agent(
-        #     role="General Medical Diagnostician",
-        #     goal="Understand and classify the medical report {report_text}, then determine top 5 possible diagnoses with reasoning and reference links.",
-        #     backstory=(
-        #         "You're a highly experienced physician with access to web search. You understand all types of medical reports—radiology, pathology, lab tests, and summaries."
-        #     ),
-        #     verbose=True,
-        #     memory=True,
-        #     llm=LLM(model="gemini/gemini-1.5-flash",
-        #                         temperature=0.5),
-        #     tools=[agent_tools],
-        #     allow_delegation=False
-        # )
+        diagnosis_agent = Agent(
+            role="General Medical Diagnostician",
+            goal="Understand and classify the medical report {report_text}, then determine top 5 possible diagnoses with reasoning and reference links.",
+            backstory=(
+                "You're a highly experienced physician with access to web search. You understand all types of medical reports—radiology, pathology, lab tests, and summaries."
+            ),
+            verbose=True,
+            memory=True,
+            llm=LLM(model="gemini/gemini-1.5-flash",
+                                temperature=0.5),
+            tools=[agent_tools],
+            allow_delegation=False
+        )
 
-        # # Agent 2: Prescription & Treatment Advisor
-        # treatment_agent = Agent(
-        #     role="Treatment and Prescription Recommender",
-        #     goal="For each diagnosis, suggest relevant medications, ointments, or procedures using web search and clinical knowledge.",
-        #     backstory=(
-        #         "You're a medical treatment specialist. You recommend treatment plans (medications, ointments, physiotherapy, etc.) and provide dosage based on diagnosis."
-        #     ),
-        #     verbose=True,
-        #     memory=True,
-        #     llm=LLM(model="gemini/gemini-1.5-flash",
-        #                         temperature=0.5),
-        #     tools=[agent_tools],
-        #     allow_delegation=False,
-        # )
+        # Agent 2: Prescription & Treatment Advisor
+        treatment_agent = Agent(
+            role="Treatment and Prescription Recommender",
+            goal="For each diagnosis, suggest relevant medications, ointments, or procedures using web search and clinical knowledge.",
+            backstory=(
+                "You're a medical treatment specialist. You recommend treatment plans (medications, ointments, physiotherapy, etc.) and provide dosage based on diagnosis."
+            ),
+            verbose=True,
+            memory=True,
+            llm=LLM(model="gemini/gemini-1.5-flash",
+                                temperature=0.5),
+            tools=[agent_tools],
+            allow_delegation=False,
+        )
 
-        # # Task 1: Diagnosis
-        # diagnosis_task = Task(
-        #     description="Analyze this medical report (of any type), identify the report category, and provide the top 5 most likely diagnoses with reasoning. Use web search.",
-        #     expected_output="List of 5 possible diagnoses with supporting explanation for each in detail.",
-        #     agent=diagnosis_agent,
-        #     input=report_text
-        # )
+        # Task 1: Diagnosis
+        diagnosis_task = Task(
+            description="Analyze this medical report (of any type), identify the report category, and provide the top 5 most likely diagnoses with reasoning. Use web search.",
+            expected_output="List of 5 possible diagnoses with supporting explanation for each in detail.",
+            agent=diagnosis_agent,
+            input=report_text
+        )
 
-        # # Task 2: Treatment Recommendation
-        # treatment_task = Task(
-        #     description="Based on the diagnoses, recommend medications or therapies with dosage. Use web search to support choices.",
-        #     expected_output="List of medicines/treatments per diagnosis with usage instructions , name of medicines/tubes and dosage.Also provide reference links with each treatment plan.",
-        #     agent=treatment_agent,
-        #     input=diagnosis_task.output
-        # )
+        # Task 2: Treatment Recommendation
+        treatment_task = Task(
+            description="Based on the diagnoses, recommend medications or therapies with dosage. Use web search to support choices.",
+            expected_output="List of medicines/treatments per diagnosis with usage instructions , name of medicines/tubes and dosage.Also provide reference links with each treatment plan.",
+            agent=treatment_agent,
+            input=diagnosis_task.output
+        )
 
-        # # Crew Runner
-        # crew = Crew(
-        #     agents=[diagnosis_agent, treatment_agent],
-        #     tasks=[diagnosis_task, treatment_task],
-        #     verbose=True
-        # )
+        # Crew Runner
+        crew = Crew(
+            agents=[diagnosis_agent, treatment_agent],
+            tasks=[diagnosis_task, treatment_task],
+            verbose=True
+        )
 
 
-        # result = crew.kickoff(inputs={'report_text': report_text})
-        # logger.info("Medical agents analysis completed successfully")
-        result=main(report_text)
-        return str(result)
+        result = crew.kickoff(inputs={'report_text': report_text})
+        logger.info("Medical agents analysis completed successfully")
+        # result=main(report_text)
+        # return str(result)
         
     except Exception as e:
         logger.error(f"Medical agents failed: {str(e)}")
