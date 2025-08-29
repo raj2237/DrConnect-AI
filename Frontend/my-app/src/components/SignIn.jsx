@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './SignIn.css';
 
 function SignIn() {
+  const navigate = useNavigate();
   const [mode, setMode] = useState('signup'); // 'signup' | 'login'
   const [fullName, setFullName] = useState('');
   const [emailAddress, setEmailAddress] = useState('');
@@ -40,7 +42,17 @@ function SignIn() {
       const data = await response.json();
   
       if (response.ok) {
+        // Persist current user email for downstream pages
+        try {
+          localStorage.setItem('currentUserEmail', emailAddress);
+        } catch (e) {}
+
         alert(data.message || "Success");
+        if (mode === 'signup') {
+          navigate('/form', { state: { email: emailAddress, fullName } });
+        } else {
+          navigate('/dashboard', { state: { email: emailAddress } });
+        }
       } else {
         alert(data.detail || "Something went wrong");
       }
